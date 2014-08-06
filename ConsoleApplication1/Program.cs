@@ -31,11 +31,11 @@ namespace ConsoleApplication1
                 var mqServer = new RabbitMqServer();
                 var random = new Random();
 
-                var mqClient = mqServer.CreateMessageQueueClient();
+                var mqClient = (RabbitMqQueueClient)mqServer.CreateMessageQueueClient();
 
                 int publishCount = 0, recieveCount = 0;
 
-                var tmpQueue = mqClient.GetTempQueueName();
+                var tmpQueue = Guid.NewGuid().ToString();
 
                 while (!stop)
                 {
@@ -46,14 +46,18 @@ namespace ConsoleApplication1
                     publishCount++;
 
                     var responseMessage = mqClient.Get<Response>(tmpQueue);
-                    Console.WriteLine("Recieved a response");
+                    Console.WriteLine("Recieved a response on queue: " + tmpQueue);
                     if (responseMessage != null)
                     {
+                        mqClient.Ack(responseMessage);
                         recieveCount++;
                         Console.WriteLine(string.Format("PublishCount: {0}, RecieveCount: {1}, Response: {2}",
                             publishCount, recieveCount, responseMessage.GetBody().Message));
                     }
                 }
+
+                mqClient.Channel.QueueDelete(tmpQueue);
+
             }) { IsBackground = true };
 
             clientThread.Start();
